@@ -9,7 +9,16 @@ This is an updated version of PowerMode, maintained to work with Notepad++ v8.8.
 - Removed debug logs and cleaned up the code.
 
 ### Installation (Updated)
-1. Download the DLL from https://github.com/[Your GitHub Username]/PowerMode/releases or Build the project using Visual Studio 2022.
+
+#### Option 1: Download the Pre-built DLL (Recommended)
+Download the DLL and enjoy! 🚀  
+https://github.com/rsna6ce/PowerMode/releases  
+1. Extract the downloaded `PowerMode.dll` (e.g., from `PowerMode-v1.0.0.zip`).
+2. Copy it to `Notepad++/Plugins/PowerMode/`.
+3. Restart Notepad++.
+
+#### Option 2: Build from Source
+1. Build the project using Visual Studio 2022.
 2. Copy the generated `PowerMode.dll` (from the Debug/Release folder) to `Notepad++/Plugins/PowerMode/`.
 3. Restart Notepad++.
 
