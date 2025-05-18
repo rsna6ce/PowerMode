@@ -1,3 +1,29 @@
+## Updated Version (Maintained by rsna6ce)
+
+This is an updated version of PowerMode, maintained to work with Notepad++ v8.8.1 as of May 2025. The plugin has been fixed to handle events properly and is compatible with modern versions of Notepad++.
+
+### Changes
+- Fixed event handling to support Scintilla 5.x (Notepad++ v8.6.5).
+- Removed dependency on `SCN_MODIFIED` due to structure mismatch.
+- Added support for copy/paste and Undo/Redo events.
+- Removed debug logs and cleaned up the code.
+
+### Installation (Updated)
+1. Build the project using Visual Studio 2022.
+2. Copy the generated `PowerMode.dll` (from the Debug/Release folder) to `Notepad++/Plugins/PowerMode/`.
+3. Restart Notepad++.
+
+### Compatibility
+- Tested with Notepad++ v8.8.1.
+- May work with older versions (e.g., v7.x), but compatibility is not guaranteed.
+
+### Credits
+This project is a fork of [dail8859/PowerMode](https://github.com/dail8859/PowerMode), originally developed by Justin Dailey.
+
+
+---
+
+
 # Power Mode
 A completely useless Notepad++ plugin. Inspired by the [Atom package](https://atom.io/packages/activate-power-mode).
 
