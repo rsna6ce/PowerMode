@@ -170,9 +170,7 @@
       <ImportLibrary>$(OutDir)PowerMode.lib</ImportLibrary>
     </Link>
     <PostBuildEvent>
-      <!-- Skip because administrator privileges are required
-      <Command>copy "$(TargetPath)" "C:\Program Files\Notepad++\plugins\PowerMode"</Command>
-      -->
+      <Command>call "$(ProjectDir)Scripts\CopyDLL.bat" "$(TargetPath)" "C:\Program Files\Notepad++\plugins\PowerMode\$(TargetFileName)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -228,9 +226,7 @@
       <ImportLibrary>$(OutDir)PowerMode.lib</ImportLibrary>
     </Link>
     <PostBuildEvent>
-      <!-- Skip because administrator privileges are required
-      <Command>copy "$(TargetPath)" "C:\Program Files\Notepad++\plugins\PowerMode"</Command>
-      -->
+      <Command>call "$(ProjectDir)Scripts\CopyDLL.bat" "$(TargetPath)" "C:\Program Files\Notepad++\plugins\PowerMode\$(TargetFileName)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

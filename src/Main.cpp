@@ -141,7 +141,12 @@ static void powerModeOnRange(int start, int end, COLORREF c, int size = 5) {
 		int ey = SendMessage(nppData._scintillaMainHandle, SCI_POINTYFROMPOSITION, 0, endPos);
 
 		for (int i = 0; i < num; ++i) {
-			particles.emplace_back(Particle{ static_cast<double>(randRange(sx, ex)), static_cast<double>(randRange(sy, ey) + 5), randRange(-2.0, 2.0), randRange(-8.0, -2.0), randRange(30, 32), size, c });
+			COLORREF randomColor = RGB(
+				static_cast<int>(randRange(128, 255)),  // ê‘
+				static_cast<int>(randRange(96, 200)),  // óŒ
+				static_cast<int>(randRange(96, 200))   // ê¬
+			);
+			particles.emplace_back(Particle{ static_cast<double>(randRange(sx, ex)), static_cast<double>(randRange(sy, ey) + 5), randRange(-2.0, 2.0), randRange(-8.0, -2.0), randRange(30, 32), size, randomColor });
 		}
 	}
 }
