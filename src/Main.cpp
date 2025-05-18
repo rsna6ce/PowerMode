@@ -29,6 +29,10 @@ static HANDLE _hModule;
 static NppData nppData;
 static void showAbout();
 
+static bool lastUndoState = false;
+static int lastTextLength = 0;
+static bool isInitialized = false;
+
 FuncItem funcItem[] = { { TEXT("About..."), showAbout, 0, false, nullptr } };
 
 typedef struct Particle {
@@ -137,7 +141,7 @@ static void powerModeOnRange(int start, int end, COLORREF c, int size = 5) {
 		int ey = SendMessage(nppData._scintillaMainHandle, SCI_POINTYFROMPOSITION, 0, endPos);
 
 		for (int i = 0; i < num; ++i) {
-			particles.emplace_back(Particle{ randRange(sx, ex), randRange(sy, ey) + 5, randRange(-2.0, 2.0), randRange(-8.0, -2.0), randRange(30, 32), size, c });
+			particles.emplace_back(Particle{ static_cast<double>(randRange(sx, ex)), static_cast<double>(randRange(sy, ey) + 5), randRange(-2.0, 2.0), randRange(-8.0, -2.0), randRange(30, 32), size, c });
 		}
 	}
 }
@@ -153,7 +157,7 @@ extern "C" __declspec(dllexport) FuncItem *getFuncsArray(int *nbF) { *nbF = 1; r
 extern "C" __declspec(dllexport) LRESULT messageProc(UINT Message, WPARAM wParam, LPARAM lParam) { return TRUE; }
 extern "C" __declspec(dllexport) BOOL isUnicode() { return TRUE; }
 
-extern "C" __declspec(dllexport) void beNotified(const SCNotification *notify) {
+extern "C" __declspec(dllexport) void beNotified(const SCNotification* notify) {
 	static int prev_size = -1;
 	static int prev_pos = 0;
 
@@ -163,60 +167,67 @@ extern "C" __declspec(dllexport) void beNotified(const SCNotification *notify) {
 		return;
 
 	switch (notify->nmhdr.code) {
-		case SCN_MODIFIED: {
-			bool isUserAction = (notify->modificationType & SC_PERFORMED_USER) != 0;
-			bool isInsert = (notify->modificationType & SC_MOD_INSERTTEXT) != 0;
-			bool isDelete = (notify->modificationType & SC_MOD_DELETETEXT) != 0;
-			bool isChangeIndicator = (notify->modificationType & SC_MOD_CHANGEINDICATOR) != 0;
-			bool isChangeMarker = (notify->modificationType & SC_MOD_CHANGEMARKER) != 0;
-
-			if (isUserAction && (isInsert || isDelete)) {
-				// Can't get style information at this time, must be delayed until SCN_UPDATEUI
-				prev_size = particles.size();
-				prev_pos = notify->position;
-				powerModeOnRange(prev_pos, notify->position + (isDelete ? 0 : notify->length), RGB(88, 88, 88));
-			}
-
-			if (isChangeIndicator) {
-				unsigned int indicators = SendMessage(nppData._scintillaMainHandle, SCI_INDICATORALLONFOR, notify->position, 0);
-				for (int i = 0; i < 32; ++i) {
-					int mask = 1 << i;
-					if (indicators & mask) {
-						COLORREF c = SendMessage(nppData._scintillaMainHandle, SCI_INDICGETFORE, i, 0);
-						powerModeOnRange(notify->position, notify->position + notify->length, c, 4);
-						break;
-					}
-				}
-			}
-
-			if (isChangeMarker) {
-				int isSet = SendMessage(nppData._scintillaMainHandle, SCI_MARKERGET, notify->line, 0);
-				if (isSet) {
-					int start = SendMessage(nppData._scintillaMainHandle, SCI_POSITIONFROMLINE, notify->line, 0);
-					int end = SendMessage(nppData._scintillaMainHandle, SCI_GETLINEENDPOSITION, notify->line, 0);
-					powerModeOnRange(start, end, RGB(88, 88, 88), 4);
-				}
-			}
-
+	case SCN_MODIFIED: {
+		// not supported event, disabled
+		break;
+	}
+	case SCN_CHARADDED: {
+		int pos = SendMessage(nppData._scintillaMainHandle, SCI_GETCURRENTPOS, 0, 0);
+		powerModeOnRange(pos - 1, pos, RGB(88, 88, 88));
+		break;
+	}
+	case SCN_KEY: {
+		if (notify->ch == VK_BACK || notify->ch == VK_DELETE) {
+			int pos = SendMessage(nppData._scintillaMainHandle, SCI_GETCURRENTPOS, 0, 0);
+			powerModeOnRange(pos, pos + 1, RGB(88, 88, 88));
+		}
+		break;
+	}
+	case SCN_UPDATEUI: {
+		if (!isInitialized) {
+			lastTextLength = SendMessage(nppData._scintillaMainHandle, SCI_GETTEXTLENGTH, 0, 0);
+			lastUndoState = SendMessage(nppData._scintillaMainHandle, SCI_GETUNDOCOLLECTION, 0, 0);
 			break;
 		}
-		case SCN_UPDATEUI:
-			if (prev_size != -1) {
-				COLORREF c = SendMessage(nppData._scintillaMainHandle, SCI_STYLEGETFORE, SendMessage(nppData._scintillaMainHandle, SCI_GETSTYLEAT, prev_pos, 0), 0);
-				if (c != RGB(0, 0, 0))
-					for (unsigned int i = prev_size; i < particles.size(); ++i)
-						particles[i].color = c;
-				prev_size = -1;
-			}
-			break;
-		case NPPN_READY:
-			SetWindowSubclass(nppData._scintillaMainHandle, doIt, 0, 0);
-			SetTimer(nppData._scintillaMainHandle, 133, 50, NULL);
-			break;
-		case NPPN_SHUTDOWN:
-			KillTimer(nppData._scintillaMainHandle, 133);
-			RemoveWindowSubclass(nppData._scintillaMainHandle, doIt, 0);
-			break;
+
+		int currentTextLength = SendMessage(nppData._scintillaMainHandle, SCI_GETTEXTLENGTH, 0, 0);
+		if (lastTextLength != currentTextLength) {
+			int pos = SendMessage(nppData._scintillaMainHandle, SCI_GETCURRENTPOS, 0, 0);
+			powerModeOnRange(pos - 1, pos, RGB(88, 88, 88));
+		}
+		lastTextLength = currentTextLength;
+
+		// Undo/Redo‚ÌŒŸo
+		bool currentUndoState = SendMessage(nppData._scintillaMainHandle, SCI_GETUNDOCOLLECTION, 0, 0);
+		if (lastUndoState != currentUndoState) {
+			int pos = SendMessage(nppData._scintillaMainHandle, SCI_GETCURRENTPOS, 0, 0);
+			powerModeOnRange(pos - 1, pos, RGB(88, 88, 88));
+		}
+		lastUndoState = currentUndoState;
+
+		if (prev_size != -1) {
+			COLORREF c = SendMessage(nppData._scintillaMainHandle, SCI_STYLEGETFORE, SendMessage(nppData._scintillaMainHandle, SCI_GETSTYLEAT, prev_pos, 0), 0);
+			if (c != RGB(0, 0, 0))
+				for (unsigned int i = prev_size; i < particles.size(); ++i)
+					particles[i].color = c;
+			prev_size = -1;
+		}
+		break;
+	}
+	case NPPN_READY: {
+		SetWindowSubclass(nppData._scintillaMainHandle, doIt, 0, 0);
+		SetTimer(nppData._scintillaMainHandle, 133, 50, NULL);
+		isInitialized = true;
+		lastTextLength = SendMessage(nppData._scintillaMainHandle, SCI_GETTEXTLENGTH, 0, 0);
+		lastUndoState = SendMessage(nppData._scintillaMainHandle, SCI_GETUNDOCOLLECTION, 0, 0);
+		break;
+	}
+	case NPPN_SHUTDOWN: {
+		KillTimer(nppData._scintillaMainHandle, 133);
+		RemoveWindowSubclass(nppData._scintillaMainHandle, doIt, 0);
+		isInitialized = false;
+		break;
+	}
 	}
 	return;
 }
